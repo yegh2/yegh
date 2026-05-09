@@ -7,11 +7,15 @@
 </head>
 <body>
     <div id="xyz"></div>
+    <button onclick="getAcc()">111</button>
     <script>
-        var accx = event.acceleration.x
-        var accy = event.acceleration.y
-        var accz = event.acceleration.z
-        document.getElementById("xyz").innerHTML = "X: " + accx + "<br>Y: " + accy + "<br>Z: " + accz;
+        function getAcc() {
+            DeviceMotionEvent.requestPermission()
+            var accx = event.acceleration.x;
+            var accy = event.acceleration.y;
+            var accz = event.acceleration.z;
+            document.getElementById("xyz").innerHTML = "X: " + accx + "<br>Y: " + accy + "<br>Z: " + accz;
+        }
     </script>
 </body>
 </html>
