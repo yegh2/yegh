@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,38 +11,36 @@
     <button onclick="requestPermission()">开始</button>
     <script>
         function requestPermission() {
-    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
-            .then(state => {
-                if (state === 'granted') {
-                    startListening();
-                } else {
-                    alert('需要运动传感器权限才能使用');
-                }
-            })
-            .catch(console.error);
-    } else {
-        // Android 或旧版 iOS 直接监听即可
-        startListening();
-    }
-}
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(state => {
+                        if (state === 'granted') {
+                            startListening();
+                        } else {
+                            alert('需要运动传感器权限才能使用');
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Android 或旧版 iOS 直接监听即可
+                startListening();
+            }
+        }
 
         function startListening() {
-        window.addEventListener('devicemotion', (event) => {
-        const acc = event.accelerationIncludingGravity || event.acceleration || {};
-        const x = acc.x ?? 0;
-        const y = acc.y ?? 0;
-        const z = acc.z ?? 0;
+            window.addEventListener('devicemotion', (event) => {
+                const acc = event.acceleration || {};   // 改为只取运动加速度
+                const x = acc.x ?? 0;
 
-        if (x > 0.2 || x < -0.2){
-            setTimeout(() => {
-                document.querySelector('img').style.display = 'none';
-            }, 2000);
-            document.querySelector('img').style.display = 'block';
-        } 
-        document.getElementById("xyz").innerHTML = `X: ${x.toFixed(2)}<br>Y: ${y.toFixed(2)}<br>Z: ${z.toFixed(2)}`;
-    });
-}
+                if (x > 0.2 || x < -0.2){
+                    setTimeout(() => {
+                        document.querySelector('img').style.display = 'none';
+                    }, 2000);
+                    document.querySelector('img').style.display = 'block';
+                } 
+                document.getElementById("xyz").innerHTML = `X: ${x.toFixed(2)}`;
+            });
+        }
     </script>
 </body>
 </html>
