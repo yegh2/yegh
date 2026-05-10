@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>页gh|Objection</title>
+    <title>页gh|异议</title>
 </head>
 <body>
-    <img src="objection.png" alt="Objection" style="display: none;">
+    <img src="异议/objection.png" alt="Objection" style="display: none;">
     <div id="xyz"></div>
     <button onclick="requestPermission()">开始</button>
     <script>
         function requestPermission() {
+            unlockAudio();
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission()
                     .then(state => {
@@ -27,12 +28,24 @@
             }
         }
 
+        const Sound = new Audio('异议/objection.mp3');
+
+        function unlockAudio() {
+            // 尝试播放后立即暂停，获得后续播放权限
+            Sound.play().then(() => {
+                Sound.pause();
+                Sound.currentTime = 0;
+            }).catch(e => console.warn('音频解锁失败', e));
+}
+
         function startListening() {
             window.addEventListener('devicemotion', (event) => {
-                const acc = event.acceleration || {};   // 改为只取运动加速度
+                const acc = event.acceleration || {};
                 const x = acc.x ?? 0;
 
                 if (x > 0.2 || x < -0.2){
+                    Sound.currentTime = 0;
+                    Sound.play();
                     setTimeout(() => {
                         document.querySelector('img').style.display = 'none';
                     }, 2000);
