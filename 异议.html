@@ -68,7 +68,7 @@
                 const y = acc.y ?? 0;
                 const z = acc.z ?? 0;
 
-                if (x > 0.2 || x < -0.2 || y > 0.2 || y < -0.2 || z > 0.2 || z < -0.2) {
+                if (x > 0.5 || x < -0.5 || y > 0.5 || y < -0.5 || z > 0.5 || z < -0.5) {
                     once();
                 } 
                 document.getElementById("accxyz").innerHTML = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, Z: ${z.toFixed(2)}`;
