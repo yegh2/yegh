@@ -31,10 +31,10 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            transition: background-color 0.2s;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             -webkit-user-select: none;
-            transition: background-color 0.2s;
         }
 
         .container {
@@ -155,23 +155,11 @@
             background: #2e2a27;
         }
 
-        .btn.is-active {
-            background: #6b9e85;
-            pointer-events: none;
-        }
-
-        .btn.is-active:hover {
+        /* 主要按钮特殊状态 */
+        .btn-main.ready {
             background: #6b9e85;
         }
-
-        /* 暂停按钮特殊颜色 */
-        .btn-pause {
-            background: #b08b6c;
-        }
-        .btn-pause:hover {
-            background: #9b7758;
-        }
-        .btn-pause.paused {
+        .btn-main.paused-state {
             background: #c4724a;
         }
 
@@ -310,7 +298,6 @@
 <body>
     <div class="container">
         <div class="card" id="card">
-            <!-- 标题（去掉了提示文字） -->
             <div class="title">異議あり</div>
 
             <!-- 图片展示区 -->
@@ -318,7 +305,7 @@
                 <img src="异议/objection.png" alt="Objection" id="img" loading="eager">
             </div>
 
-            <!-- 控件行：下拉菜单 + 开始 + 暂停 + 全屏 -->
+            <!-- 控件行：下拉菜单 + 主按钮（开始/暂停/继续） + 全屏 -->
             <div class="controls">
                 <div class="select-wrapper">
                     <select id="neirong">
@@ -328,8 +315,7 @@
                         <option value="kurae">くらえ!</option>
                     </select>
                 </div>
-                <button class="btn" id="startBtn">开始</button>
-                <button class="btn btn-pause" id="pauseBtn" disabled>暂停</button>
+                <button class="btn btn-main" id="mainBtn">开始</button>
                 <button class="btn btn-fullscreen" id="fullscreenBtn">全屏</button>
             </div>
         </div>
@@ -346,8 +332,7 @@
             // ---- DOM 引用 ----
             const imgEl = document.getElementById('img');
             const selectEl = document.getElementById('neirong');
-            const startBtn = document.getElementById('startBtn');
-            const pauseBtn = document.getElementById('pauseBtn');
+            const mainBtn = document.getElementById('mainBtn');
             const fullscreenBtn = document.getElementById('fullscreenBtn');
             const accDisplay = document.getElementById('accxyz');
             const mouDisplay = document.getElementById('mouxyz');
@@ -355,13 +340,27 @@
 
             // ---- 状态 ----
             let sound = new Audio('异议/objection.mp3');
-            let isListening = false;
-            let isPaused = false;
+            let isListening = false;      // 是否已激活传感器
+            let isPaused = false;        // 是否处于暂停/继续状态
             let hideTimer = null;
             let lastTriggerTime = 0;
             const DEBOUNCE_MS = 400;
             let lastMouseX = null;
             let lastMouseY = null;
+
+            // ---- 更新主按钮文本与样式 ----
+            function updateMainButton() {
+                mainBtn.classList.remove('ready', 'paused-state');
+                if (!isListening) {
+                    mainBtn.textContent = '开始';
+                } else if (isPaused) {
+                    mainBtn.textContent = '继续';
+                    mainBtn.classList.add('paused-state');
+                } else {
+                    mainBtn.textContent = '暂停';
+                    mainBtn.classList.add('ready');
+                }
+            }
 
             // ---- 更新选择内容 ----
             function changeNeirong(value) {
@@ -389,7 +388,7 @@
 
             // ---- 触发一次（核心不变） ----
             function triggerOnce() {
-                if (isPaused) return; // 暂停时忽略触发
+                if (!isListening || isPaused) return;
                 const now = Date.now();
                 if (now - lastTriggerTime < DEBOUNCE_MS) return;
                 lastTriggerTime = now;
@@ -411,13 +410,8 @@
             function startListening() {
                 if (isListening) return;
                 isListening = true;
-
-                startBtn.textContent = '已就绪';
-                startBtn.classList.add('is-active');
-                pauseBtn.disabled = false; // 启用暂停按钮
                 isPaused = false;
-                pauseBtn.textContent = '暂停';
-                pauseBtn.classList.remove('paused');
+                updateMainButton();
 
                 // 设备运动监听
                 window.addEventListener('devicemotion', function(event) {
@@ -454,54 +448,78 @@
             function togglePause() {
                 if (!isListening) return;
                 isPaused = !isPaused;
-                if (isPaused) {
-                    pauseBtn.textContent = '继续';
-                    pauseBtn.classList.add('paused');
-                } else {
-                    pauseBtn.textContent = '暂停';
-                    pauseBtn.classList.remove('paused');
-                }
+                updateMainButton();
             }
 
-            // ---- 请求权限并开始 ----
-            function requestPermission() {
-                unlockAudio();
-                if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                    DeviceMotionEvent.requestPermission()
-                        .then(state => {
-                            if (state === 'granted') {
+            // ---- 主按钮点击处理 ----
+            function onMainButtonClick() {
+                if (!isListening) {
+                    // 未开始，请求权限并开始
+                    unlockAudio();
+                    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                        DeviceMotionEvent.requestPermission()
+                            .then(state => {
+                                if (state === 'granted') {
+                                    startListening();
+                                } else {
+                                    alert('需要运动传感器权限才能使用此功能');
+                                    updateMainButton(); // 恢复按钮状态
+                                }
+                            })
+                            .catch(err => {
+                                console.error('权限请求失败', err);
+                                // 尝试直接开始
                                 startListening();
-                            } else {
-                                alert('需要运动传感器权限才能使用此功能');
-                            }
-                        })
-                        .catch(err => {
-                            console.error('权限请求失败', err);
-                            startListening();
-                        });
+                            });
+                    } else {
+                        startListening();
+                    }
                 } else {
-                    startListening();
+                    // 已开始，切换暂停状态
+                    togglePause();
                 }
             }
 
-            // ---- 全屏功能 ----
+            // ---- 全屏功能（增强兼容性） ----
             function toggleFullscreen() {
-                // 如果已经全屏，则退出
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
+                const el = imageStage;
+                // 如果已经全屏则退出
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
                     return;
                 }
-                // 请求图片舞台全屏（这样只显示图片区域）
-                if (imageStage.requestFullscreen) {
-                    imageStage.requestFullscreen().catch(err => {
-                        console.warn('全屏请求失败', err);
+
+                // 请求全屏
+                if (el.requestFullscreen) {
+                    el.requestFullscreen().catch(err => {
+                        console.warn('全屏请求失败，尝试替代方案', err);
+                        fallbackFullscreen();
                     });
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                } else {
+                    fallbackFullscreen();
                 }
             }
 
-            // 监听全屏变化，为body添加类名以控制UI隐藏
+            function fallbackFullscreen() {
+                // 如果元素全屏不支持，尝试让整个页面全屏
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(e => console.error(e));
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                } else {
+                    alert('您的浏览器不支持全屏功能');
+                }
+            }
+
+            // 监听全屏变化
             function onFullscreenChange() {
-                if (document.fullscreenElement) {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
                     document.body.classList.add('fullscreen-active');
                 } else {
                     document.body.classList.remove('fullscreen-active');
@@ -509,13 +527,13 @@
             }
 
             // 绑定事件
-            startBtn.addEventListener('click', requestPermission);
-            pauseBtn.addEventListener('click', togglePause);
+            mainBtn.addEventListener('click', onMainButtonClick);
             fullscreenBtn.addEventListener('click', toggleFullscreen);
             document.addEventListener('fullscreenchange', onFullscreenChange);
             document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
-            // 初始显示
+            // 初始状态
+            updateMainButton();
             accDisplay.textContent = '加速度计待命中';
             mouDisplay.textContent = '鼠标待命中';
         })();
