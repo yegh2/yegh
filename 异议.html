@@ -45,9 +45,9 @@
             flex-direction: column;
             align-items: center;
             gap: 24px;
+            transition: all 0.3s;
         }
 
-        /* ---- 卡片 ---- */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -60,9 +60,9 @@
             align-items: center;
             gap: 18px;
             position: relative;
+            transition: all 0.3s;
         }
 
-        /* ---- 标题 ---- */
         .title {
             font-size: 0.85rem;
             font-weight: 500;
@@ -72,13 +72,13 @@
             line-height: 1.4;
         }
 
-        /* ---- 控件行 ---- */
         .controls {
             display: flex;
             gap: 10px;
             width: 100%;
             align-items: center;
             flex-wrap: wrap;
+            transition: opacity 0.3s;
         }
 
         .select-wrapper {
@@ -128,7 +128,6 @@
             box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
         }
 
-        /* ---- 按钮通用样式 ---- */
         .btn {
             padding: 11px 16px;
             font-size: 0.9rem;
@@ -155,7 +154,6 @@
             background: #2e2a27;
         }
 
-        /* 主要按钮特殊状态 */
         .btn-main.ready {
             background: #6b9e85;
         }
@@ -163,7 +161,6 @@
             background: #c4724a;
         }
 
-        /* 全屏按钮 */
         .btn-fullscreen {
             background: #636b6f;
         }
@@ -171,7 +168,6 @@
             background: #4f5559;
         }
 
-        /* ---- 图片显示区 ---- */
         .image-stage {
             width: 100%;
             min-height: 100px;
@@ -196,7 +192,6 @@
             transition: opacity 0.08s ease-out;
         }
 
-        /* ---- 调试信息 ---- */
         .debug-info {
             width: 100%;
             display: flex;
@@ -208,6 +203,7 @@
             padding: 0 4px;
             line-height: 1.5;
             word-break: break-all;
+            transition: opacity 0.3s;
         }
 
         .debug-info span {
@@ -215,9 +211,14 @@
             text-align: center;
         }
 
-        /* ========== 全屏模式 ========== */
-        .fullscreen-active {
-            background-color: #000 !important;
+        /* 全屏模式（仅隐藏元素） */
+        .fullscreen-active .title,
+        .fullscreen-active .controls,
+        .fullscreen-active .debug-info {
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            visibility: hidden;
         }
 
         .fullscreen-active .card {
@@ -226,27 +227,28 @@
             box-shadow: none;
             padding: 0;
             gap: 0;
-            width: 100%;
-            height: 100%;
-            justify-content: center;
         }
 
-        .fullscreen-active .title,
-        .fullscreen-active .controls,
-        .fullscreen-active .debug-info {
-            display: none !important;
+        .fullscreen-active .container {
+            max-width: 100%;
+            padding: 0;
+            gap: 0;
+            height: 100vh;
+            justify-content: center;
         }
 
         .fullscreen-active .image-stage {
-            position: fixed;
-            top: 0;
-            left: 0;
             width: 100vw;
             height: 100vh;
+            min-height: auto;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
             z-index: 9999;
+            background: #000;
         }
 
         .fullscreen-active .image-stage img {
@@ -255,11 +257,8 @@
             width: auto;
             height: auto;
             object-fit: contain;
-            opacity: 1 !important;
-            transition: none;
         }
 
-        /* 响应式调整 */
         @media (max-width: 440px) {
             .container {
                 padding: 20px 14px;
@@ -300,12 +299,10 @@
         <div class="card" id="card">
             <div class="title">異議あり</div>
 
-            <!-- 图片展示区 -->
             <div class="image-stage" id="imageStage">
                 <img src="异议/objection.png" alt="Objection" id="img" loading="eager">
             </div>
 
-            <!-- 控件行：下拉菜单 + 主按钮（开始/暂停/继续） + 全屏 -->
             <div class="controls">
                 <div class="select-wrapper">
                     <select id="neirong">
@@ -320,7 +317,6 @@
             </div>
         </div>
 
-        <!-- 调试信息 -->
         <div class="debug-info">
             <span id="accxyz">加速度计待命中</span>
             <span id="mouxyz">鼠标待命中</span>
@@ -329,26 +325,23 @@
 
     <script>
         (function() {
-            // ---- DOM 引用 ----
             const imgEl = document.getElementById('img');
             const selectEl = document.getElementById('neirong');
             const mainBtn = document.getElementById('mainBtn');
             const fullscreenBtn = document.getElementById('fullscreenBtn');
             const accDisplay = document.getElementById('accxyz');
             const mouDisplay = document.getElementById('mouxyz');
-            const imageStage = document.getElementById('imageStage');
 
-            // ---- 状态 ----
             let sound = new Audio('异议/objection.mp3');
-            let isListening = false;      // 是否已激活传感器
-            let isPaused = false;        // 是否处于暂停/继续状态
+            let isListening = false;
+            let isPaused = false;
+            let isFullscreen = false;
             let hideTimer = null;
             let lastTriggerTime = 0;
             const DEBOUNCE_MS = 400;
             let lastMouseX = null;
             let lastMouseY = null;
 
-            // ---- 更新主按钮文本与样式 ----
             function updateMainButton() {
                 mainBtn.classList.remove('ready', 'paused-state');
                 if (!isListening) {
@@ -362,7 +355,6 @@
                 }
             }
 
-            // ---- 更新选择内容 ----
             function changeNeirong(value) {
                 imgEl.src = `异议/${value}.png`;
                 imgEl.alt = value;
@@ -373,20 +365,19 @@
                 changeNeirong(this.value);
             });
 
-            // ---- 图片显示/隐藏 ----
             function showImage() {
                 if (hideTimer !== null) {
                     clearTimeout(hideTimer);
                     hideTimer = null;
                 }
                 imgEl.classList.add('visible');
+                // 无论是否全屏，1秒后自动隐藏
                 hideTimer = setTimeout(() => {
                     imgEl.classList.remove('visible');
                     hideTimer = null;
                 }, 1000);
             }
 
-            // ---- 触发一次（核心不变） ----
             function triggerOnce() {
                 if (!isListening || isPaused) return;
                 const now = Date.now();
@@ -398,7 +389,6 @@
                 showImage();
             }
 
-            // ---- 解锁音频 ----
             function unlockAudio() {
                 sound.play().then(() => {
                     sound.pause();
@@ -406,14 +396,12 @@
                 }).catch(() => {});
             }
 
-            // ---- 开始监听 ----
             function startListening() {
                 if (isListening) return;
                 isListening = true;
                 isPaused = false;
                 updateMainButton();
 
-                // 设备运动监听
                 window.addEventListener('devicemotion', function(event) {
                     const acc = event.acceleration || {};
                     const x = acc.x ?? 0;
@@ -426,7 +414,6 @@
                     accDisplay.textContent = `加速度 X:${x.toFixed(1)} Y:${y.toFixed(1)} Z:${z.toFixed(1)}`;
                 });
 
-                // 鼠标移动监听
                 document.addEventListener('mousemove', function(event) {
                     const cx = event.clientX;
                     const cy = event.clientY;
@@ -444,17 +431,14 @@
                 mouDisplay.textContent = '鼠标已就绪';
             }
 
-            // ---- 暂停/继续切换 ----
             function togglePause() {
                 if (!isListening) return;
                 isPaused = !isPaused;
                 updateMainButton();
             }
 
-            // ---- 主按钮点击处理 ----
             function onMainButtonClick() {
                 if (!isListening) {
-                    // 未开始，请求权限并开始
                     unlockAudio();
                     if (typeof DeviceMotionEvent.requestPermission === 'function') {
                         DeviceMotionEvent.requestPermission()
@@ -463,76 +447,35 @@
                                     startListening();
                                 } else {
                                     alert('需要运动传感器权限才能使用此功能');
-                                    updateMainButton(); // 恢复按钮状态
+                                    updateMainButton();
                                 }
                             })
                             .catch(err => {
                                 console.error('权限请求失败', err);
-                                // 尝试直接开始
                                 startListening();
                             });
                     } else {
                         startListening();
                     }
                 } else {
-                    // 已开始，切换暂停状态
                     togglePause();
                 }
             }
 
-            // ---- 全屏功能（增强兼容性） ----
             function toggleFullscreen() {
-                const el = imageStage;
-                // 如果已经全屏则退出
-                if (document.fullscreenElement || document.webkitFullscreenElement) {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    }
-                    return;
-                }
-
-                // 请求全屏
-                if (el.requestFullscreen) {
-                    el.requestFullscreen().catch(err => {
-                        console.warn('全屏请求失败，尝试替代方案', err);
-                        fallbackFullscreen();
-                    });
-                } else if (el.webkitRequestFullscreen) {
-                    el.webkitRequestFullscreen();
-                } else {
-                    fallbackFullscreen();
-                }
-            }
-
-            function fallbackFullscreen() {
-                // 如果元素全屏不支持，尝试让整个页面全屏
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(e => console.error(e));
-                } else if (document.documentElement.webkitRequestFullscreen) {
-                    document.documentElement.webkitRequestFullscreen();
-                } else {
-                    alert('您的浏览器不支持全屏功能');
-                }
-            }
-
-            // 监听全屏变化
-            function onFullscreenChange() {
-                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                isFullscreen = !isFullscreen;
+                if (isFullscreen) {
                     document.body.classList.add('fullscreen-active');
+                    fullscreenBtn.textContent = '退出全屏';
                 } else {
                     document.body.classList.remove('fullscreen-active');
+                    fullscreenBtn.textContent = '全屏';
                 }
             }
 
-            // 绑定事件
             mainBtn.addEventListener('click', onMainButtonClick);
             fullscreenBtn.addEventListener('click', toggleFullscreen);
-            document.addEventListener('fullscreenchange', onFullscreenChange);
-            document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
-            // 初始状态
             updateMainButton();
             accDisplay.textContent = '加速度计待命中';
             mouDisplay.textContent = '鼠标待命中';
