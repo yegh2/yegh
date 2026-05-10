@@ -211,7 +211,7 @@
             text-align: center;
         }
 
-        /* 全屏模式（仅隐藏元素） */
+        /* 全屏模式 */
         .fullscreen-active .title,
         .fullscreen-active .controls,
         .fullscreen-active .debug-info {
@@ -248,7 +248,7 @@
             top: 0;
             left: 0;
             z-index: 9999;
-            background: #000;
+            background: #ffffff;
         }
 
         .fullscreen-active .image-stage img {
@@ -297,7 +297,7 @@
 <body>
     <div class="container">
         <div class="card" id="card">
-            <div class="title">異議あり</div>
+            <div class="title">异议</div>
 
             <div class="image-stage" id="imageStage">
                 <img src="异议/objection.png" alt="Objection" id="img" loading="eager">
@@ -371,7 +371,6 @@
                     hideTimer = null;
                 }
                 imgEl.classList.add('visible');
-                // 无论是否全屏，1秒后自动隐藏
                 hideTimer = setTimeout(() => {
                     imgEl.classList.remove('visible');
                     hideTimer = null;
